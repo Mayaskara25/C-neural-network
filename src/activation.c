@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <math.h>
 #include "activation.h"
+ float no_activation(float a) { return a ; }
+ float no_activ_derivative(float a) { return 1 ; }
 
  float sigmoid_activation(float a) {return ( 1.0f / (1.0f + expf(-a))); }
  float sigmoid_derivative(float a) { return ( ( expf(-a)) / powf( (1.0 + expf(-a)) , 2 ) ); }

@@ -1,7 +1,8 @@
 #ifndef ACTIVATE_H
 #define ACTIVATE_H
 
-
+float no_activation(float a);
+float no_activ_derivative(float a);
 float sigmoid_activation(float a);
 float sigmoid_derivative(float a);
 

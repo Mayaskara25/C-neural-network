@@ -32,6 +32,8 @@ int main() {
         add_layer(nn, l2);
         DenseLayer* l3 = create_dense_layer(4, 4,sigmoid_activation , sigmoid_derivative);
         add_layer(nn, l3);
+        DenseLayer* l4 = create_dense_layer(4, 4 , no_activation , no_activ_derivative);
+        add_layer(nn, l4);
 
         for ( int i = 0 ; i < 10000;  i++){
             matrix const* output = forward_network(a,nn);

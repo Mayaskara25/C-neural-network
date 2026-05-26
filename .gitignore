@@ -1,0 +1,20 @@
+# Compiled files
+*.o
+*.out
+*.exe
+
+# Build folders
+build/
+
+# Debug files
+*.dSYM/
+
+# VSCode
+.vscode/
+
+# CLion
+.idea/
+cmake-build-*/
+
+# Temporary
+*.log

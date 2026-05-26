@@ -10,6 +10,10 @@ DenseLayer* create_dense_layer(int input_size , int output_size , float (*activa
     d->input = create_mat(input_size , 1);
     d->output = create_mat(output_size , 1);
     d->z  = create_mat(output_size , 1);
+    d->dW.data = NULL ; d->dW.rows = 0 ; d->dW.cols = 0 ;
+    d->db.data = NULL ; d->db.rows = 0 ; d->db.cols = 0;
+    d->dx.data = NULL ; d->dx.rows = 0 ; d->dx.cols = 0;
+    d->delta.data = NULL ; d->delta.rows = 0 ; d->delta.cols = 0;
     d->activation = activation;
     d->activation_derivative = activation_derivative;
     xavier_init_mat(d->weights , d->input.rows);
@@ -31,6 +35,27 @@ DenseLayer* create_dense_layer(int input_size , int output_size , float (*activa
      layer->output = other_op_mat(layer->z , layer->activation);
 
  }
+ void backward_pass(matrix upstream_gradient , DenseLayer *layer){
+     //for delta
+  matrix act_deriv = other_op_mat(layer->z,layer->activation_derivative);
+  free_mat(&layer->delta);
+  layer->delta = elemul_mat(upstream_gradient, act_deriv);
+  free_mat(&act_deriv);
+  //for dW
+  matrix x_T = transpose_mat(layer->input);
+  free_mat(&layer->dW);
+  layer->dW = mul_mat(layer->delta, x_T);
+  free_mat(&x_T);
+  //for db
+  free_mat(&layer->db);
+  layer->db = copy_mat(layer->delta);
+  //for dx
+  matrix weight_T = transpose_mat(layer->weights);
+  free_mat(&layer->dx);
+  layer->dx = mul_mat(weight_T, layer->delta);
+  free_mat(&weight_T);
+
+ }
 
  void free_dense_layer(DenseLayer *layer) {
     free_mat(&layer->weights);
@@ -38,5 +63,9 @@ DenseLayer* create_dense_layer(int input_size , int output_size , float (*activa
     free_mat(&layer->input);
     free_mat(&layer->output);
     free_mat(&layer->z);
+    free_mat(&layer->dW);
+    free_mat(&layer->db);
+    free_mat(&layer->dx);
+    free_mat(&layer->delta);
     free(layer);
  }

@@ -14,5 +14,7 @@ typedef struct{
 NeuralNetwork* create_neural_network();
 void add_layer(NeuralNetwork* network , DenseLayer *layer);
 matrix const* forward_network(matrix input , NeuralNetwork *network);
+void backward_network(matrix loss_grad , NeuralNetwork *network);
+void update_weights(NeuralNetwork *network , float learning_rate);
 void free_neural_network(NeuralNetwork *network);
 #endif

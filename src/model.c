@@ -1,3 +1,4 @@
+#include "layer.h"
 #include "matrix.h"
 #include "model.h"
 #include <stdio.h>
@@ -44,6 +45,28 @@ matrix const* forward_network(matrix input, NeuralNetwork *network){
         current_ans = network->layer[i]->output;
     }
     return &network->layer[network->num_of_layers -1]->output;
+}
+void backward_network(matrix loss_grad, NeuralNetwork *network){
+    matrix current_grad = loss_grad;
+    for ( int i = network->num_of_layers-1 ; i >= 0 ;i--){
+        backward_pass(current_grad,network->layer[i]);
+        current_grad = network->layer[i]->dx;
+    }
+}
+void update_weights(NeuralNetwork *network, float learning_rate){
+    for( int i = network->num_of_layers - 1 ; i >=0 ; i-- ){
+        matrix delta_W = scalarmul_mat(network->layer[i]->dW, learning_rate);
+        matrix new_weight = sub_mat(network->layer[i]->weights, delta_W);
+        free_mat(&network->layer[i]->weights);
+        network->layer[i]->weights = new_weight;
+        free_mat(&delta_W);
+
+        matrix delta_b = scalarmul_mat(network->layer[i]->db , learning_rate);
+        matrix new_bias = sub_mat(network->layer[i]->bias, delta_b);
+        free_mat(&network->layer[i]->bias);
+        network->layer[i]->bias = new_bias;
+        free_mat(&delta_b);
+    }
 }
 
 void free_neural_network(NeuralNetwork *network){

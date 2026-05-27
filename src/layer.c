@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "activation.h"
 #include "matrix.h"
 #include "layer.h"
 DenseLayer* create_dense_layer(int input_size , int output_size , float (*activation)(float) , float (*activation_derivative) (float)) {
@@ -16,7 +17,11 @@ DenseLayer* create_dense_layer(int input_size , int output_size , float (*activa
     d->delta.data = NULL ; d->delta.rows = 0 ; d->delta.cols = 0;
     d->activation = activation;
     d->activation_derivative = activation_derivative;
-    xavier_init_mat(d->weights , d->input.rows);
+    if(activation == relu_activation){
+        he_init_mat(d->weights, d->input.rows);
+    } else {
+      xavier_init_mat(d->weights , d->input.rows);
+    }
     zero_mat(d->bias);
     return d;
 }

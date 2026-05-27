@@ -54,6 +54,7 @@ int main() {
         //print_mat(*output);
         free_neural_network(nn);
         free_mat(&a);
+        free_mat(&o);
 
 return 0;
 }

@@ -34,4 +34,6 @@ void he_init_mat(matrix a , int input_size); //this gives in range +- sqrtf(2/in
 matrix other_op_mat(matrix a , float (*fn)(float));
 matrix elemul_mat(matrix a , matrix b );
 
+float find_max( matrix a);
+
 #endif

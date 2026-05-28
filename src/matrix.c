@@ -153,3 +153,15 @@ matrix other_op_mat(matrix a , float (*fn)(float)) {
     }
     return c;
 }
+
+float find_max(matrix a){
+    float max = mat_at(a, 0, 0);
+    for( int i = 0 ; i < a.rows ; i++){
+        for( int j = 0 ; j < a.cols ; j++){
+            if(mat_at(a, i, j) > max){
+                max = mat_at(a, i, j);
+            }
+        }
+    }
+    return max;;
+}

@@ -11,6 +11,13 @@ void print_mat(matrix a){
         printf("\n");
     }
 }
+void input_mat(matrix a){
+    for( int i = 0 ; i < a.rows ; i++) {
+        for ( int j= 0 ; j < a.cols ;j++) {
+            scanf("%f" ,&mat_at(a,i,j));
+        }
+    }
+}
 matrix create_mat(int row , int col) {
     matrix m;
     m.rows = row;

@@ -15,6 +15,7 @@ typedef struct {
 } matrix;
 
 void print_mat(matrix a);
+void input_mat(matrix a);
 
 matrix create_mat(int row , int col);
 matrix copy_mat(matrix a);

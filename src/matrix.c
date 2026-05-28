@@ -163,5 +163,5 @@ float find_max(matrix a){
             }
         }
     }
-    return max;;
+    return max;
 }

@@ -160,7 +160,7 @@ matrix other_op_mat(matrix a , float (*fn)(float)) {
     }
     return c;
 }
-
+//THERE IS A MASSIVE ISSUE - FIND MAX FAILS FOR MATRICES WITH NEGATIVE NUMEBRS - FIX IT LATER 
 float find_max(matrix a){
     float max = mat_at(a, 0, 0);
     for( int i = 0 ; i < a.rows ; i++){

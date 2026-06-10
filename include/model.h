@@ -16,5 +16,11 @@ void add_layer(NeuralNetwork* network , DenseLayer *layer);
 matrix const* forward_network(matrix input , NeuralNetwork *network);
 void backward_network(matrix loss_grad , NeuralNetwork *network);
 void update_weights(NeuralNetwork *network , float learning_rate);
+
+void zero_network_accumulators(NeuralNetwork *nn);
+void accumulate_network_gradients(NeuralNetwork *nn);
+void update_weights_batch(NeuralNetwork *nn, float lr, int batch_size);
+
+
 void free_neural_network(NeuralNetwork *network);
 #endif

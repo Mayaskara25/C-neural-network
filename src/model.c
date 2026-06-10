@@ -69,6 +69,26 @@ void update_weights(NeuralNetwork *network, float learning_rate){
     }
 }
 
+void zero_network_accumulators(NeuralNetwork *nn) {
+    for( int i = 0 ;  i < nn->num_of_layers ; i++) zero_accumulators(nn->layer[i]); 
+}
+void accumulate_network_gradients(NeuralNetwork *nn){
+    for (int i = 0; i < nn->num_of_layers; i++)  accumulate_gradients(nn->layer[i]);      
+}
+
+void update_weights_batch(NeuralNetwork *nn, float lr, int batch_size) {
+    for( int i = 0 ; i  < nn->num_of_layers ; i++) {
+        DenseLayer *layer =nn->layer[i];
+        for( int r = 0 ; r < layer->weights.rows ; r++){
+            for( int c = 0 ; c < layer->weights.cols ; c++){
+                mat_at(layer->weights , r ,c) -= lr*(mat_at(layer->accumulated_dW , r ,c)/(float)batch_size);
+            }
+        }
+        for( int r = 0 ; r < layer->bias.rows ; r++){
+            mat_at(layer->bias ,r , 0) -= lr*(mat_at(layer->accumulated_db , r , 0 ) / (float)batch_size);
+        }
+    }
+}
 void free_neural_network(NeuralNetwork *network){
     for( int i = 0 ; i < network->num_of_layers ; i++){
         free_dense_layer(network->layer[i]);

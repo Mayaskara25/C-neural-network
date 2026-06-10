@@ -11,6 +11,8 @@ typedef struct {
     matrix dW;
     matrix db;
     matrix dx;
+    matrix accumulated_dW;
+    matrix accumulated_db;
     float (*activation)(float);
     float (*activation_derivative)(float);
 }DenseLayer;
@@ -18,5 +20,7 @@ typedef struct {
 DenseLayer* create_dense_layer(int input_size , int output_size , float (*activation)(float) , float (*activation_deriative) (float));
 void forward_pass(matrix input , DenseLayer *layer);
 void backward_pass(matrix upstream_gradient, DenseLayer *layer);
+void zero_accumulators(DenseLayer *layer);
+void accumulate_gradients(DenseLayer *layer);
 void free_dense_layer(DenseLayer *layer);
 #endif

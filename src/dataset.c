@@ -9,11 +9,11 @@ Dataset* create_dataset(int input_size , int output_size){
   if( ds == NULL) { fprintf(stderr , "Error :dataset malloc failed\n"); return NULL;}
   ds->inputs = (matrix*)malloc(DATASET_INIT_CAPACITY * sizeof(matrix));
   ds->outputs = (matrix*)malloc(DATASET_INIT_CAPACITY * sizeof(matrix));
-   printf("DEBUG create_dataset: inputs=%p outputs=%p\n",
-           (void*)ds->inputs, (void*)ds->outputs);
-    if (ds->inputs == NULL || ds->outputs == NULL) {
-        fprintf(stderr, "inputs/outputs malloc failed\n"); return NULL;
-    }
+   //printf("DEBUG create_dataset: inputs=%p outputs=%p\n",
+   //        (void*)ds->inputs, (void*)ds->outputs);
+   // if (ds->inputs == NULL || ds->outputs == NULL) {
+   //     fprintf(stderr, "inputs/outputs malloc failed\n"); return NULL;
+   // }
   ds->input_size = input_size;
   ds->output_size = output_size;
   ds->capacity = DATASET_INIT_CAPACITY;
@@ -21,17 +21,17 @@ Dataset* create_dataset(int input_size , int output_size){
   return ds; 
 }
 void add_example(Dataset *ds , matrix input , matrix output) {
-  printf("DEBUG add_example called: num=%d cap=%d inputs_ptr=%p\n",
-           ds->num_examples, ds->capacity, (void*)ds->inputs);
+  //printf("DEBUG add_example called: num=%d cap=%d inputs_ptr=%p\n",
+  //         ds->num_examples, ds->capacity, (void*)ds->inputs);
   if(ds->num_examples == ds->capacity) {
     ds->capacity *= 2;
     ds->inputs = (matrix*)realloc(ds->inputs ,ds->capacity*sizeof(matrix));
     ds->outputs = (matrix*)realloc(ds->outputs ,ds->capacity*sizeof(matrix));
     if(!ds->inputs || !ds->outputs) { fprintf(stderr , "error : dataset realloc failed") ; return;}
     
-    printf("DEBUG add_example: stored input rows=%d cols=%d\n",
-           ds->inputs[ds->num_examples].rows,
-           ds->inputs[ds->num_examples].cols);
+    //printf("DEBUG add_example: stored input rows=%d cols=%d\n",
+    //       ds->inputs[ds->num_examples].rows,
+    //       ds->inputs[ds->num_examples].cols);
 
     
   }

@@ -81,13 +81,13 @@ void normalize_dataset(Dataset *ds , TrainedModel *model){
 void train(TrainedModel *model , DataLoader *dl , int epoches , float lr){
     
     // DEBUG — print first example dimensions
-    printf("DEBUG: first input  rows=%d cols=%d\n",
-           dl->ds->inputs[0].rows, dl->ds->inputs[0].cols);
-    printf("DEBUG: first output rows=%d cols=%d\n",
-           dl->ds->outputs[0].rows, dl->ds->outputs[0].cols);
-    printf("DEBUG: layer[0] input rows=%d cols=%d\n",
-           model->network->layer[0]->input.rows,
-           model->network->layer[0]->input.cols);
+    //printf("DEBUG: first input  rows=%d cols=%d\n",
+    //       dl->ds->inputs[0].rows, dl->ds->inputs[0].cols);
+    //printf("DEBUG: first output rows=%d cols=%d\n",
+    //       dl->ds->outputs[0].rows, dl->ds->outputs[0].cols);
+    //printf("DEBUG: layer[0] input rows=%d cols=%d\n",
+    //       model->network->layer[0]->input.rows,
+    //       model->network->layer[0]->input.cols);
     // rest of train...
 
     printf("Starting to train");

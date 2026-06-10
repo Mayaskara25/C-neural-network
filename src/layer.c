@@ -31,12 +31,12 @@ DenseLayer* create_dense_layer(int input_size , int output_size , float (*activa
     //in i dont know how many other functions....its too late now]
 }
  void forward_pass( matrix input , DenseLayer *layer){
-     printf("DEBUG forward_pass: input rows=%d cols=%d | layer->input rows=%d cols=%d\n",
-           input.rows, input.cols, layer->input.rows, layer->input.cols);
-     if(layer->input.rows != input.rows || layer->input.cols != input.cols){
-         fprintf(stderr , "Input matrix incompatable with layer's input");
-         return;
-     }
+    // printf("DEBUG forward_pass: input rows=%d cols=%d | layer->input rows=%d cols=%d\n",
+    //       input.rows, input.cols, layer->input.rows, layer->input.cols);
+    // if(layer->input.rows != input.rows || layer->input.cols != input.cols){
+    //     fprintf(stderr , "Input matrix incompatable with layer's input");
+    //     return;
+    // }
      free_mat(&layer->input);
      layer->input = copy_mat(input);
      matrix temp = mul_mat(layer->weights , layer->input);

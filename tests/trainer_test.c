@@ -65,8 +65,15 @@ int main() {
         free_mat(&test_input);
         free_mat(&predicted);
     }
+    matrix temp = create_mat(1,1);
+    mat_at(temp , 0 , 0) = (float)17.543;
+    matrix pout = predict(model , temp);
+    printf("predicted output : %f" , mat_at(pout, 0 , 0) );
 
     // cleanup
+    free_mat(&temp);
+    free_mat(&pout);
+
     free_dataloader(dl);
     free_dataset(ds);
     free_trained_model(model);

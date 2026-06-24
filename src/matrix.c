@@ -151,6 +151,18 @@ matrix elemul_mat( matrix a , matrix b) {
     }
     return c;
 }
+matrix elediv_mat(matrix a , matrix b) {
+    if(a.rows != b.rows || a.cols != b.cols) {
+        mat_error("matrices not compatable for element wise division");
+    }
+    matrix c = create_mat(a.rows , a.cols);
+    for( int i = 0 ; i < a.rows ; i++){
+        for( int j = 0; j < a.cols ; j++) {
+            mat_at(c,i,j) = mat_at(a,i,j) / mat_at(b,i,j);
+        }
+    }
+    return c;
+}
 matrix other_op_mat(matrix a , float (*fn)(float)) {
     matrix c = create_mat( a.rows , a.cols);
     for ( int i = 0 ; i < c.rows ; i++ ) {
@@ -160,13 +172,24 @@ matrix other_op_mat(matrix a , float (*fn)(float)) {
     }
     return c;
 }
-//THERE IS A MASSIVE ISSUE - FIND MAX FAILS FOR MATRICES WITH NEGATIVE NUMEBRS - FIX IT LATER 
 float find_max(matrix a){
     float max = mat_at(a, 0, 0);
     for( int i = 0 ; i < a.rows ; i++){
         for( int j = 0 ; j < a.cols ; j++){
             if(mat_at(a, i, j) > max){
                 max = mat_at(a, i, j);
+            }
+        }
+    }
+    return max;
+}
+float find_max_abs(matrix a){
+    float max = fabsf(mat_at(a, 0, 0));
+    for( int i = 0 ; i < a.rows ; i++){
+        for( int j = 0 ; j < a.cols ; j++){
+            float val = fabsf(mat_at(a, i, j));
+            if(val > max){
+                max = val;
             }
         }
     }

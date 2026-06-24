@@ -14,8 +14,8 @@ typedef enum {
 
 typedef struct {
     NeuralNetwork *network;
-    float input_max;
-    float output_max;
+    matrix input_max;
+    matrix output_max;
 } TrainedModel ;
 TrainedModel* create_trained_model(NeuralNetwork *network);
 void free_trained_model(TrainedModel *model);

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include "trainer.h"
 #include "activation.h"
 #include "layer.h"
@@ -11,8 +12,6 @@
 
 
 
-static float input_max = 0;
-static float output_max = 0;
 
 ActivationID get_activationId(float (*activation)(float)) {
 
@@ -45,52 +44,70 @@ TrainedModel* create_trained_model(NeuralNetwork *network) {
     TrainedModel *m = (TrainedModel*)malloc(sizeof(TrainedModel));
     if( m == NULL) { fprintf(stderr , "error : trained model malloc failed") ; return NULL ; }
     m->network = network;
-    m->input_max = 1.0f;
-    m->output_max = 1.0f;
+    m->input_max.rows = 0; m->input_max.cols = 0; m->input_max.data = NULL;
+    m->output_max.rows = 0; m->output_max.cols = 0; m->output_max.data = NULL;
     return m;
 }
 void free_trained_model(TrainedModel *model){
+    free_mat(&model->input_max);
+    free_mat(&model->output_max);
     free_neural_network(model->network);
     free(model);
 }
 void normalize_dataset(Dataset *ds , TrainedModel *model){
-    //this is to find max across all input matrices
-    float in_max = 0.0f;
+    if(model->input_max.data != NULL) free_mat(&model->input_max);
+    if(model->output_max.data != NULL) free_mat(&model->output_max);
+
+    model->input_max = create_mat(ds->input_size , 1);
+    model->output_max = create_mat(ds->output_size , 1);
+    zero_mat(model->input_max);
+    zero_mat(model->output_max);
+
     for( int i = 0 ; i < ds->num_examples ; i++){
-        float m = find_max(ds->inputs[i]);
-        if( m > in_max)  in_max = m;
-    }
-    //same for output
-    float out_max = 0.0f;
-    for( int i = 0 ; i < ds->num_examples ; i++){
-        float m = find_max(ds->outputs[i]);
-        if( m > out_max)  out_max = m;
-    }
-    model->input_max = in_max;
-    model->output_max = out_max;
-    //normalizing - the issue with find_mat persists ; go to matrix.c and fix it
-    for( int i = 0 ; i < ds->num_examples ; i++){
-        for( int r = 0 ; r < ds->inputs[i].rows ; r++ ){
-            mat_at(ds->inputs[i] , r, 0) /= in_max;
+        for( int r = 0 ; r < ds->input_size ; r++){
+            float val = fabsf(mat_at(ds->inputs[i] , r , 0));
+            if(val > mat_at(model->input_max , r , 0))
+                mat_at(model->input_max , r , 0) = val;
         }
-        for( int r = 0 ; r < ds->outputs[i].rows ; r++){
-            mat_at(ds->outputs[i] , r, 0) /= out_max;
+        for( int r = 0 ; r < ds->output_size ; r++){
+            float val = fabsf(mat_at(ds->outputs[i] , r , 0));
+            if(val > mat_at(model->output_max , r , 0))
+                mat_at(model->output_max , r , 0) = val;
         }
+    }
+
+    for( int r = 0 ; r < ds->input_size ; r++)
+        if(mat_at(model->input_max , r , 0) == 0.0f) mat_at(model->input_max , r , 0) = 1.0f;
+    for( int r = 0 ; r < ds->output_size ; r++)
+        if(mat_at(model->output_max , r , 0) == 0.0f) mat_at(model->output_max , r , 0) = 1.0f;
+
+    for( int i = 0 ; i < ds->num_examples ; i++){
+        for( int r = 0 ; r < ds->input_size ; r++)
+            mat_at(ds->inputs[i] , r , 0) /= mat_at(model->input_max , r , 0);
+        for( int r = 0 ; r < ds->output_size ; r++)
+            mat_at(ds->outputs[i] , r , 0) /= mat_at(model->output_max , r , 0);
     }
 }
-void train(TrainedModel *model , DataLoader *dl , int epoches , float lr){
-    
-    // DEBUG — print first example dimensions
-    //printf("DEBUG: first input  rows=%d cols=%d\n",
-    //       dl->ds->inputs[0].rows, dl->ds->inputs[0].cols);
-    //printf("DEBUG: first output rows=%d cols=%d\n",
-    //       dl->ds->outputs[0].rows, dl->ds->outputs[0].cols);
-    //printf("DEBUG: layer[0] input rows=%d cols=%d\n",
-    //       model->network->layer[0]->input.rows,
-    //       model->network->layer[0]->input.cols);
-    // rest of train...
+static void print_bar(int epoch, int total, float loss){
+    int bar_width = 40;
+    int filled = (int)((float)(epoch + 1) / total * bar_width);
+    int pct = (int)((float)(epoch + 1) / total * 100);
 
-    printf("Starting to train");
+    printf("\r  [");
+    for(int i = 0 ; i < bar_width ; i++){
+        if(i < filled) printf("#");
+        else printf(".");
+    }
+    printf("]  %3d%%  epoch %d/%d  loss: %.6f", pct, epoch + 1, total, loss);
+    fflush(stdout);
+}
+
+void train(TrainedModel *model , DataLoader *dl , int epoches , float lr){
+    int num_layers = model->network->num_of_layers;
+    printf("train: %d layers, %d examples, batch_size=%d, lr=%.4f, epochs=%d\n",
+           num_layers, dl->ds->num_examples, dl->batch_size, lr, epoches);
+
+    float loss = 0.0f;
     for( int epoch = 0 ; epoch < epoches ; epoch++){
         reset_dataloader(dl);
         while(has_next_batch(dl)){
@@ -106,32 +123,29 @@ void train(TrainedModel *model , DataLoader *dl , int epoches , float lr){
             update_weights_batch(model->network , lr , b.size);
             free_batch(b);
         }
-        if( epoch % 100 == 0){
-            matrix const* out = forward_network(dl->ds->inputs[0] , model->network);
-            float loss = mse(*out , dl->ds->outputs[0]);
-            printf("epoches %d loss : %f\n" , epoch , loss);
-        }
+        matrix const* out = forward_network(dl->ds->inputs[0] , model->network);
+        loss = mse(*out , dl->ds->outputs[0]);
+        print_bar(epoch, epoches, loss);
     }
-    printf("training complete");
-
+    printf("\ntrain: done, final loss: %.6f\n", loss);
 }
 matrix predict(TrainedModel *model, matrix X) {
-    matrix norm_X = scalarmul_mat(X, 1.0f / model->input_max);
+    matrix norm_X = elediv_mat(X, model->input_max);
     matrix const* output = forward_network(norm_X, model->network);
-    matrix answer_temp = copy_mat(*output);
-    matrix answer = scalarmul_mat(answer_temp, model->output_max);
+    matrix answer = elemul_mat(*output, model->output_max);
     free_mat(&norm_X);
-    free_mat(&answer_temp);
     return answer;
 }
 void save_model(TrainedModel *model , char *path){
     FILE *f = fopen(path , "wb");
     if( f == NULL) { fprintf(stderr , " error : could not open file to save model") ; return ;}
     int magic = 0xFAFF;
-    fwrite(&model ,sizeof(int) , 1 , f);
+    fwrite(&magic ,sizeof(int) , 1 , f);
     fwrite(&model->network->num_of_layers , sizeof(int) , 1 , f);
-    fwrite(&model->input_max , sizeof(float), 1 , f);
-    fwrite(&model->output_max , sizeof(float), 1 , f);
+    fwrite(&model->input_max.rows , sizeof(int) , 1 , f);
+    fwrite(model->input_max.data , sizeof(float) , model->input_max.rows , f);
+    fwrite(&model->output_max.rows , sizeof(int) , 1 , f);
+    fwrite(model->output_max.data , sizeof(float) , model->output_max.rows , f);
     for( int i = 0 ; i < model->network->num_of_layers ; i++){
         DenseLayer *layer = model->network->layer[i];
         int input_size = layer->weights.cols;
@@ -142,7 +156,7 @@ void save_model(TrainedModel *model , char *path){
         fwrite(&output_size , sizeof(int) , 1 , f);
         fwrite(&actID , sizeof(int) , 1 , f);
         fwrite(layer->weights.data , sizeof(float) , input_size * output_size , f);
-        fwrite(layer->bias.data , sizeof(int), output_size , f);
+        fwrite(layer->bias.data , sizeof(float), output_size , f);
     }
     fclose(f);
     printf("model saved\n");
@@ -154,24 +168,32 @@ NeuralNetwork* load_model_network(char* path , TrainedModel **out_model){
     fread(&magic , sizeof(int) , 1 , f);
     if( magic != 0xFAFF ) { fprintf(stderr , " error : invalid model file") ; fclose(f) ; return NULL ;}
     int num_of_layers;
-    float input_max , output_max;
     fread(&num_of_layers , sizeof(int) , 1 , f);
-    fread(&input_max , sizeof(float) , 1 , f);
-    fread(&output_max , sizeof(float) ,1 , f);
+
+    int input_max_size;
+    fread(&input_max_size , sizeof(int) , 1 , f);
+    matrix input_max = create_mat(input_max_size , 1);
+    fread(input_max.data , sizeof(float) , input_max_size , f);
+
+    int output_max_size;
+    fread(&output_max_size , sizeof(int) , 1 , f);
+    matrix output_max = create_mat(output_max_size , 1);
+    fread(output_max.data , sizeof(float) , output_max_size , f);
+
     NeuralNetwork *nn = create_neural_network();
     for( int i = 0 ; i < num_of_layers ; i++) {
         int input_size , output_size ;
         ActivationID actID ;
-        fread(&input_max , sizeof(float) , 1, f);
-        fread(&output_max , sizeof(float), 1, f);
+        fread(&input_size , sizeof(int) , 1, f);
+        fread(&output_size , sizeof(int), 1, f);
         fread(&actID , sizeof(int), 1 , f);
         float (*activation)(float);
         float (*activation_derivative)(float);
         get_activation_fxn(actID , &activation , &activation_derivative);
 
         DenseLayer *layer =create_dense_layer(input_size , output_size , activation , activation_derivative);
-        fread(&layer->weights.data , sizeof(float) , input_size*output_size ,f );
-        fread(&layer->bias.data , sizeof(float) , output_size , f);
+        fread(layer->weights.data , sizeof(float) , input_size*output_size ,f );
+        fread(layer->bias.data , sizeof(float) , output_size , f);
         add_layer(nn , layer);
     }
     fclose(f);

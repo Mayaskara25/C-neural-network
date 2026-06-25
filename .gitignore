@@ -2,6 +2,12 @@
 *.o
 *.out
 *.exe
+trainer_test
+backprop_test
+layer_test
+model_test
+matrix_test
+csv_test
 
 # Build folders
 build/

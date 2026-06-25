@@ -10,6 +10,13 @@ structs were linked to earlier ?- REMEBER TO FREE tHEM - i.e free_mat(layer->inp
 2)when a function returns a struct that is a member of the layer , the CALLER DOES NOT OWN THE MEMORY , matrix x = forward_pass(...) ; this returns layer->output to x , now both x and layer->outpu point to
 the same memory location , so DO NOT FREE MATRIX X , just freeing the dense_layer sould free the heap pointed by x aswell.
 
+BUILD
+    make all            Build all test targets.
+    make <target>       Build a single test (e.g. make trainer_test).
+    make clean          Remove all built binaries.
+
+    Available targets: trainer_test, backprop_test, layer_test,
+    model_test, matrix_test, csv_test.
 
 NAME
     c-neural-network — neural network library in C
@@ -66,6 +73,11 @@ MATRIX OPERATIONS
         Return: matrix (by value, owns malloc'd data).
         Must free_mat() the result.
 
+    matrix elediv_mat(matrix a, matrix b)
+        Return element-wise division a / b.
+        Return: matrix (by value, owns malloc'd data).
+        Must free_mat() the result.
+
     matrix other_op_mat(matrix a, float (*fn)(float))
         Return a new matrix with fn applied to every element.
         Return: matrix (by value, owns malloc'd data).
@@ -73,6 +85,10 @@ MATRIX OPERATIONS
 
     float find_max(matrix a)
         Return the maximum element in a.
+        Return: scalar float. No free needed.
+
+    float find_max_abs(matrix a)
+        Return the maximum absolute value in a.
         Return: scalar float. No free needed.
 
     void rand_init_mat(matrix a)
@@ -221,41 +237,45 @@ DATALOADER
 TRAINER
     TrainedModel* create_trained_model(NeuralNetwork *network)
         Wrap a NeuralNetwork in a TrainedModel, which holds normalization
-        parameters. Takes ownership of the network pointer.
+        parameters (per-feature max vectors). Takes ownership of the
+        network pointer.
         Return: pointer to heap-allocated TrainedModel.
         Must free_trained_model() the result.
         Do NOT free the network separately.
 
     void free_trained_model(TrainedModel *model)
-        Free the internal NeuralNetwork (via free_neural_network) and
-        the TrainedModel struct.
+        Free input_max and output_max matrices, the internal NeuralNetwork
+        (via free_neural_network), and the TrainedModel struct.
 
     void normalize_dataset(Dataset *ds, TrainedModel *model)
-        Scale dataset inputs and outputs to [0, 1] by dividing by the
-        per-dataset maximum. Stores input_max and output_max in model
-        for denormalization during predict. Modifies dataset in-place.
+        Per-feature max-abs scaling to [-1, 1]. Each input/output feature
+        is independently scaled by its own maximum absolute value. Stores
+        per-feature max vectors as matrices (input_max, output_max) in
+        model for denormalization during predict. Features with max 0 are
+        left unscaled. Modifies dataset in-place.
 
     void train(TrainedModel *model, DataLoader *dl, int epochs, float lr)
         Run mini-batch gradient descent loop: for each epoch, iterate
         batches, zero accumulators, forward/backward/accumulate per
-        example, then update_weights_batch. Prints loss every 100 epochs.
+        example, then update_weights_batch. Displays a progress bar with
+        percentage, epoch count, and loss.
 
     matrix predict(TrainedModel *model, matrix X)
-        Normalize X, run forward_network, denormalize the output.
+        Normalize X by per-feature division, run forward_network,
+        denormalize the output by per-feature multiplication.
         Return: matrix (by value, owns malloc'd data).
         Must free_mat() the result.
 
     void save_model(TrainedModel *model, char *path)
-        Write model architecture, weights, and biases to a binary file.
-        NOTE: known bugs in save/load -- see source comments.
+        Write model architecture, weights, biases, and per-feature
+        normalization vectors to a binary file.
 
     NeuralNetwork* load_model_network(char *path, TrainedModel **out_model)
         Read model from a binary file, reconstructing the NeuralNetwork
-        and TrainedModel.
+        and TrainedModel with normalization vectors.
         Return: pointer to NeuralNetwork (also stored in *out_model).
         *out_model receives a new TrainedModel.
         Both must eventually be freed via free_trained_model(*out_model).
-        NOTE: known bugs in save/load -- see source comments.
 
     ActivationID get_activationId(float (*activation)(float))
         Map an activation function pointer to its ActivationID enum value.
@@ -266,24 +286,47 @@ TRAINER
         Map an ActivationID enum back to the corresponding activation and
         derivative function pointers.
 
-TO BE IMPLEMENTED
-    1. Per-column normalization
-       The current normalize_dataset() divides by the global maximum
-       across the entire dataset. This should be changed to per-column
-       (per-feature) normalization so each input/output feature is scaled
-       independently to [0, 1].
+CSV
+    CSV* create_csv(int rows, int cols)
+        Allocate an empty CSV with rows×cols data and no header.
+        Return: pointer to heap-allocated CSV.
+        Must free_csv() the result.
 
-    2. Terminal commands
+    CSV* read_csv(const char *path, int has_header)
+        Parse a CSV file into a CSV struct. If has_header is 1, the first
+        line is read as column names into header[]. Data is stored as a
+        flat row-major float array. Handles Windows line endings.
+        Return: pointer to heap-allocated CSV, or NULL on error.
+        Must free_csv() the result.
+
+    void write_csv(const CSV *csv, const char *path)
+        Write a CSV struct to a file. Writes header line if has_header is
+        set. Data values formatted with %.7g precision.
+
+    void print_csv(const CSV *csv)
+        Print CSV to stdout in tab-separated format for debugging.
+        No free needed.
+
+    void free_csv(CSV *csv)
+        Free data array, each header string, header array, and the CSV
+        struct itself. Safe to call with NULL.
+
+    Dataset* csv_to_dataset(const CSV *csv, int input_cols, int output_cols)
+        Convert a CSV to a Dataset. The first input_cols columns become
+        inputs, the last output_cols columns become outputs. Middle
+        columns (if any) are silently skipped. Returns NULL if
+        input_cols + output_cols > csv->cols.
+        Return: pointer to heap-allocated Dataset.
+        Must free_dataset() the result.
+
+TO BE IMPLEMENTED
+    1. Terminal commands
        A command-line interface should be added so the user can run:
            ./nn train <dataset.csv>
            ./nn <modelpath> predict <testdata.csv>
-       This requires CSV I/O, command-line argument parsing, and wiring
-       into the existing train/predict pipeline.
-
-    3. Training progress bar
-       The current train() loop prints loss every 100 epochs. This should
-       be replaced with a terminal loading bar that updates every epoch,
-        showing: [========>         ] 45%  Epoch 450/1000  Loss: 0.0234
+       CSV I/O is now available via the csv module. This requires
+       command-line argument parsing and wiring into the existing
+       train/predict pipeline.
 
 STRUCT DATA MEMBERS
     matrix (MATRIX OPERATIONS)
@@ -338,5 +381,57 @@ STRUCT DATA MEMBERS
 
     TrainedModel (TRAINER)
         NeuralNetwork *network  — wrapped neural network
-        float input_max         — maximum input value (for normalization)
-        float output_max        — maximum output value (for normalization)
+        matrix input_max        — per-feature max-abs vector for inputs
+        matrix output_max       — per-feature max-abs vector for outputs
+
+    CSV (CSV)
+        float *data           — row-major flattened float array
+        int rows              — number of data rows (excludes header)
+        int cols              — number of columns
+        char **header         — array of column name strings, or NULL
+        int has_header        — 1 if header present, 0 if not
+
+USAGE PIPELINE
+    The functions in this library should be called in the following order
+    to set up a complete training and prediction pipeline:
+
+    1. Load data
+           CSV *csv = read_csv("data.csv", 1);
+           Dataset *ds = csv_to_dataset(csv, input_cols, output_cols);
+           free_csv(csv);
+
+    2. Build the network
+           NeuralNetwork *nn = create_neural_network();
+           add_layer(nn, create_dense_layer(input_cols, 64, relu_activation, relu_derivative));
+           add_layer(nn, create_dense_layer(64, output_cols, no_activation, no_activ_derivative));
+
+    3. Wrap in TrainedModel
+           TrainedModel *model = create_trained_model(nn);
+
+    4. Normalize the dataset
+           normalize_dataset(ds, model);
+
+    5. Create the DataLoader
+           DataLoader *dl = create_dataloader(ds, batch_size);
+
+    6. Train
+           train(model, dl, epochs, learning_rate);
+
+    7. Predict (normalization/denormalization is handled internally)
+           matrix input = create_mat(input_cols, 1);
+           // ... fill input values ...
+           matrix result = predict(model, input);
+           // ... use result ...
+           free_mat(&result);
+           free_mat(&input);
+
+    8. Save / Load
+           save_model(model, "model.bin");
+           // later:
+           TrainedModel *loaded;
+           load_model_network("model.bin", &loaded);
+
+    9. Cleanup (in this order)
+           free_dataloader(dl);
+           free_dataset(ds);
+           free_trained_model(model);

@@ -42,7 +42,7 @@ int main() {
     normalize_dataset(train_ds, model);
 
     DataLoader *dl = create_dataloader(train_ds, 16);
-    train(model, dl, 1000, 0.005);
+    train(model, dl, 1000, 0.005, LOSS_MSE);
 
     save_model(model, "house_price_model.bin");
 

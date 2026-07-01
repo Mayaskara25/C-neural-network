@@ -18,6 +18,7 @@ ActivationID get_activationId(float (*activation)(float)) {
     if(activation == sigmoid_activation) return ACTIVATION_SIGMOID;
     if(activation == relu_activation) return ACTIVATION_RELU;
     if( activation == tanh_activation) return ACTIVATION_TANH;
+    if( activation == leaky_relu_activation) return ACTIVATION_LEAKY_RELU;
     else { return ACTIVATION_LINEAR; }
 }
 void get_activation_fxn(ActivationID id, float (**activation)(float), float (**activation_derivative)(float)) {
@@ -37,6 +38,10 @@ void get_activation_fxn(ActivationID id, float (**activation)(float), float (**a
         case ACTIVATION_LINEAR:
             *activation = no_activation;
             *activation_derivative = no_activ_derivative;
+            break;
+        case ACTIVATION_LEAKY_RELU:
+            *activation = leaky_relu_activation;
+            *activation_derivative = leaky_relu_derivative;
             break;
         default:
             fprintf(stderr , "error : unknown activation id %d in model file, falling back to linear\n" , id);
@@ -107,10 +112,14 @@ static void print_bar(int epoch, int total, float loss){
     fflush(stdout);
 }
 
-void train(TrainedModel *model , DataLoader *dl , int epoches , float lr){
+void train(TrainedModel *model , DataLoader *dl , int epoches , float lr , LossID loss_id){
     int num_layers = model->network->num_of_layers;
     printf("train: %d layers, %d examples, batch_size=%d, lr=%.4f, epochs=%d\n",
            num_layers, dl->ds->num_examples, dl->batch_size, lr, epoches);
+
+    float (*loss_fn)(matrix, matrix);
+    matrix (*loss_derivative_fn)(matrix, matrix);
+    get_loss_fxn(loss_id, &loss_fn, &loss_derivative_fn);
 
     float loss = 0.0f;
     for( int epoch = 0 ; epoch < epoches ; epoch++){
@@ -120,7 +129,7 @@ void train(TrainedModel *model , DataLoader *dl , int epoches , float lr){
             zero_network_accumulators(model->network);
             for(int i = 0 ; i < b.size ; i++){
                 matrix const* output =  forward_network(b.inputs[i] , model->network);
-                matrix loss_grad = mse_derivative(*output , b.outputs[i]);
+                matrix loss_grad = loss_derivative_fn(*output , b.outputs[i]);
                 backward_network(loss_grad , model->network);
                 accumulate_network_gradients(model->network);
                 free_mat(&loss_grad);
@@ -131,7 +140,7 @@ void train(TrainedModel *model , DataLoader *dl , int epoches , float lr){
         float total_loss = 0.0f;
         for(int i = 0 ; i < dl->ds->num_examples ; i++){
             matrix const* out = forward_network(dl->ds->inputs[i] , model->network);
-            total_loss += mse(*out , dl->ds->outputs[i]);
+            total_loss += loss_fn(*out , dl->ds->outputs[i]);
         }
         loss = total_loss / (float)dl->ds->num_examples;
         print_bar(epoch, epoches, loss);

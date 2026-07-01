@@ -42,7 +42,7 @@ int main() {
     normalize_dataset(train_ds, model);
 
     DataLoader *dl = create_dataloader(train_ds, 16);
-    train(model, dl, 3000, 0.02);
+    train(model, dl, 3000, 0.02, LOSS_MSE);
 
     printf("\nTesting on held-out set:\n");
     float total_x_error = 0.0f, total_y_error = 0.0f;

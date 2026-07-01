@@ -4,12 +4,14 @@
 #include "dataloader.h"
 #include "dataset.h"
 #include "model.h"
+#include "loss.h"
 
 typedef enum {
     ACTIVATION_SIGMOID = 0,
     ACTIVATION_RELU = 1 ,
     ACTIVATION_TANH = 2,
-    ACTIVATION_LINEAR = 3
+    ACTIVATION_LINEAR = 3,
+    ACTIVATION_LEAKY_RELU = 4
 } ActivationID;
 
 typedef struct {
@@ -20,7 +22,7 @@ typedef struct {
 TrainedModel* create_trained_model(NeuralNetwork *network);
 void free_trained_model(TrainedModel *model);
 void normalize_dataset(Dataset *ds , TrainedModel *model);
-void train(TrainedModel *model , DataLoader *dl , int epoches , float lr);
+void train(TrainedModel *model , DataLoader *dl , int epoches , float lr , LossID loss_id);
 matrix predict(TrainedModel *model , matrix X);
 void save_model(TrainedModel *model , char *path);
 NeuralNetwork* load_model_network(char* path , TrainedModel **out_model);

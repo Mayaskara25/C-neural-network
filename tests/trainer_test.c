@@ -43,7 +43,7 @@ int main() {
     DataLoader *dl = create_dataloader(ds, 4);
 
     // train
-    train(model, dl, 10000, 0.1);
+    train(model, dl, 10000, 0.1, LOSS_MSE);
 
     // save
     save_model(model, "model.bin");

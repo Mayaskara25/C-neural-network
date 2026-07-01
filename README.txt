@@ -108,6 +108,8 @@ ACTIVATION FUNCTIONS
     float sigmoid_derivative(float a)
     float relu_activation(float a)
     float relu_derivative(float a)
+    float leaky_relu_activation(float a)
+    float leaky_relu_derivative(float a)
     float tanh_activation(float a)
     float tanh_derivative(float a)
     float no_activation(float a)
@@ -190,6 +192,46 @@ LOSS
         Return: matrix (by value, owns malloc'd data).
         Must free_mat() the result.
 
+    float mae(matrix y_pred, matrix y_actual)
+        Compute mean absolute error: (1/N)summation|y_pred - y_actual|.
+        Return: scalar float. No free needed.
+
+    matrix mae_derivative(matrix y_pred, matrix y_actual)
+        Compute gradient of MAE w.r.t. predictions: sign(y_pred - y_actual)/N.
+        Return: matrix (by value, owns malloc'd data).
+        Must free_mat() the result.
+
+    float huber(matrix y_pred, matrix y_actual)
+        Compute Huber loss (delta hardcoded to 1.0): quadratic for
+        |y_pred - y_actual| <= delta, linear beyond it.
+        Return: scalar float. No free needed.
+
+    matrix huber_derivative(matrix y_pred, matrix y_actual)
+        Compute gradient of Huber loss w.r.t. predictions.
+        Return: matrix (by value, owns malloc'd data).
+        Must free_mat() the result.
+
+    float binary_cross_entropy(matrix y_pred, matrix y_actual)
+        Compute binary cross-entropy loss. Predictions are clamped to
+        [1e-7, 1-1e-7] to avoid log/divide-by-zero.
+        NOTE: not wired into LossID/get_loss_fxn/train() yet -- implemented
+        for future use. Meaningful only when the output layer uses sigmoid
+        activation.
+        Return: scalar float. No free needed.
+
+    matrix binary_cross_entropy_derivative(matrix y_pred, matrix y_actual)
+        Compute the raw (unfused) gradient of BCE w.r.t. predictions:
+        (y_pred - y_actual) / (y_pred*(1 - y_pred)) / N. Not pre-multiplied
+        by sigmoid'(z) -- backward_pass() already applies the output layer's
+        activation derivative.
+        Return: matrix (by value, owns malloc'd data).
+        Must free_mat() the result.
+
+    void get_loss_fxn(LossID id, float (**loss)(matrix, matrix),
+                      matrix (**loss_derivative)(matrix, matrix))
+        Map a LossID to its loss and loss-derivative function pointers.
+        Unknown ids fall back to LOSS_MSE.
+
 DATASET
     Dataset* create_dataset(int input_size, int output_size)
         Allocate an empty dataset with dynamic capacity (starts at 8).
@@ -254,9 +296,10 @@ TRAINER
         model for denormalization during predict. Features with max 0 are
         left unscaled. Modifies dataset in-place.
 
-    void train(TrainedModel *model, DataLoader *dl, int epochs, float lr)
-        Run mini-batch gradient descent loop: for each epoch, iterate
-        batches, zero accumulators, forward/backward/accumulate per
+    void train(TrainedModel *model, DataLoader *dl, int epochs, float lr, LossID loss_id)
+        Run mini-batch gradient descent loop using the loss selected by
+        loss_id (see LossID under STRUCT DATA MEMBERS). For each epoch,
+        iterate batches, zero accumulators, forward/backward/accumulate per
         example, then update_weights_batch. Displays a progress bar with
         percentage, epoch count, and loss.
 
@@ -374,10 +417,16 @@ STRUCT DATA MEMBERS
         int *indices          — shuffled array of dataset indices
 
     ActivationID (TRAINER, enum)
-        ACTIVATION_SIGMOID = 0
-        ACTIVATION_RELU    = 1
-        ACTIVATION_TANH    = 2
-        ACTIVATION_LINEAR  = 3
+        ACTIVATION_SIGMOID    = 0
+        ACTIVATION_RELU       = 1
+        ACTIVATION_TANH       = 2
+        ACTIVATION_LINEAR     = 3
+        ACTIVATION_LEAKY_RELU = 4
+
+    LossID (LOSS, enum)
+        LOSS_MSE   = 0
+        LOSS_MAE   = 1
+        LOSS_HUBER = 2
 
     TrainedModel (TRAINER)
         NeuralNetwork *network  — wrapped neural network
@@ -415,7 +464,7 @@ USAGE PIPELINE
            DataLoader *dl = create_dataloader(ds, batch_size);
 
     6. Train
-           train(model, dl, epochs, learning_rate);
+           train(model, dl, epochs, learning_rate, LOSS_MSE);
 
     7. Predict (normalization/denormalization is handled internally)
            matrix input = create_mat(input_cols, 1);

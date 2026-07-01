@@ -11,6 +11,9 @@
  float relu_activation(float a){ return ( a > 0  ? a : 0 ); }
  float relu_derivative(float a ){ return (a > 0 ? 1 : 0 ) ;}
 
+ float leaky_relu_activation(float a){ return ( a > 0 ? a : 0.01f * a ); }
+ float leaky_relu_derivative(float a){ return ( a > 0 ? 1.0f : 0.01f ); }
+
  float tanh_activation(float a){ return (  (expf(a) - expf(-a)) / (expf(a) + expf(-a)) ) ; }
  float tanh_derivative(float a){ return  ( (4.0f) / powf( ( expf(a) + expf(-a) ) , 2 ) ) ; }
     //another formula -> d/dx(tanh(a)) = 1 -(tanh(a))^2 ;

@@ -9,6 +9,9 @@ float sigmoid_derivative(float a);
 float relu_activation(float a);
 float relu_derivative(float a);
 
+float leaky_relu_activation(float a);
+float leaky_relu_derivative(float a);
+
 float tanh_activation(float a);
 float tanh_derivative(float a);
 #endif

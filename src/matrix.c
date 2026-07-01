@@ -14,7 +14,10 @@ void print_mat(matrix a){
 void input_mat(matrix a){
     for( int i = 0 ; i < a.rows ; i++) {
         for ( int j= 0 ; j < a.cols ;j++) {
-            scanf("%f" ,&mat_at(a,i,j));
+            if(scanf("%f" ,&mat_at(a,i,j)) != 1) {
+                fprintf(stderr , "error : invalid or missing input, matrix incomplete\n");
+                return;
+            }
         }
     }
 }

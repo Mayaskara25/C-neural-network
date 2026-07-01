@@ -9,11 +9,7 @@ int main() {
     srand(time(NULL));
     printf("input matrix:\n");
     matrix a = create_mat(3,1);
-    for( int i = 0 ; i < a.rows ; i++) {
-        for ( int j= 0 ; j < a.cols ;j++) {
-            scanf("%f" ,&mat_at(a,i,j));
-        }
-    }
+    input_mat(a);
     print_mat(a);
     printf("\n");
 DenseLayer *layer = create_dense_layer(3, 5, sigmoid_activation , sigmoid_derivative);

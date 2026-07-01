@@ -10,7 +10,10 @@ int main() {
     for( int i = 0 ; i < a.rows ; i++) {
         for ( int j= 0 ; j < a.cols ;j++) {
             printf("..");
-            scanf("%f" ,&mat_at(a,i,j));
+            if(scanf("%f" ,&mat_at(a,i,j)) != 1) {
+                fprintf(stderr , "error : invalid or missing input, matrix incomplete\n");
+                return 1;
+            }
         }
     }
     print_mat(a);
@@ -20,7 +23,10 @@ int main() {
     for( int i = 0 ; i < b.rows ; i++) {
         for ( int j= 0 ; j < b.cols ;j++) {
             printf("..");
-            scanf("%f" ,&mat_at(b,i,j));
+            if(scanf("%f" ,&mat_at(b,i,j)) != 1) {
+                fprintf(stderr , "error : invalid or missing input, matrix incomplete\n");
+                return 1;
+            }
         }
     }
     print_mat(b);

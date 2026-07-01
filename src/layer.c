@@ -79,7 +79,7 @@ DenseLayer* create_dense_layer(int input_size , int output_size , float (*activa
 
  void accumulate_gradients(DenseLayer *layer){
     for ( int i = 0 ; i < layer->dW.rows ; i++){
-        for( int j = 0 ; j < layer->db.cols ; j++){
+        for( int j = 0 ; j < layer->dW.cols ; j++){
             mat_at(layer->accumulated_dW , i , j) += mat_at(layer->dW , i , j );
         }
     }

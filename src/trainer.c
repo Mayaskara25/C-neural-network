@@ -38,6 +38,11 @@ void get_activation_fxn(ActivationID id, float (**activation)(float), float (**a
             *activation = no_activation;
             *activation_derivative = no_activ_derivative;
             break;
+        default:
+            fprintf(stderr , "error : unknown activation id %d in model file, falling back to linear\n" , id);
+            *activation = no_activation;
+            *activation_derivative = no_activ_derivative;
+            break;
     }
 }
 TrainedModel* create_trained_model(NeuralNetwork *network) {
@@ -123,8 +128,12 @@ void train(TrainedModel *model , DataLoader *dl , int epoches , float lr){
             update_weights_batch(model->network , lr , b.size);
             free_batch(b);
         }
-        matrix const* out = forward_network(dl->ds->inputs[0] , model->network);
-        loss = mse(*out , dl->ds->outputs[0]);
+        float total_loss = 0.0f;
+        for(int i = 0 ; i < dl->ds->num_examples ; i++){
+            matrix const* out = forward_network(dl->ds->inputs[i] , model->network);
+            total_loss += mse(*out , dl->ds->outputs[i]);
+        }
+        loss = total_loss / (float)dl->ds->num_examples;
         print_bar(epoch, epoches, loss);
     }
     printf("\ntrain: done, final loss: %.6f\n", loss);
@@ -161,39 +170,60 @@ void save_model(TrainedModel *model , char *path){
     fclose(f);
     printf("model saved\n");
 }
+static int checked_fread(void *ptr, size_t size, size_t count, FILE *f) {
+    if(fread(ptr , size , count , f) != count) {
+        fprintf(stderr , " error : model file truncated or corrupt\n");
+        return 0;
+    }
+    return 1;
+}
+
 NeuralNetwork* load_model_network(char* path , TrainedModel **out_model){
     FILE *f = fopen(path , "rb");
     if( f == NULL) { fprintf(stderr , " error : could not open file to read model") ; return NULL;}
     int magic;
-    fread(&magic , sizeof(int) , 1 , f);
+    if(!checked_fread(&magic , sizeof(int) , 1 , f)) { fclose(f) ; return NULL ; }
     if( magic != 0xFAFF ) { fprintf(stderr , " error : invalid model file") ; fclose(f) ; return NULL ;}
     int num_of_layers;
-    fread(&num_of_layers , sizeof(int) , 1 , f);
+    if(!checked_fread(&num_of_layers , sizeof(int) , 1 , f)) { fclose(f) ; return NULL ; }
 
     int input_max_size;
-    fread(&input_max_size , sizeof(int) , 1 , f);
+    if(!checked_fread(&input_max_size , sizeof(int) , 1 , f)) { fclose(f) ; return NULL ; }
     matrix input_max = create_mat(input_max_size , 1);
-    fread(input_max.data , sizeof(float) , input_max_size , f);
+    if(!checked_fread(input_max.data , sizeof(float) , input_max_size , f)) {
+        free_mat(&input_max) ; fclose(f) ; return NULL ;
+    }
 
     int output_max_size;
-    fread(&output_max_size , sizeof(int) , 1 , f);
+    if(!checked_fread(&output_max_size , sizeof(int) , 1 , f)) {
+        free_mat(&input_max) ; fclose(f) ; return NULL ;
+    }
     matrix output_max = create_mat(output_max_size , 1);
-    fread(output_max.data , sizeof(float) , output_max_size , f);
+    if(!checked_fread(output_max.data , sizeof(float) , output_max_size , f)) {
+        free_mat(&input_max) ; free_mat(&output_max) ; fclose(f) ; return NULL ;
+    }
 
     NeuralNetwork *nn = create_neural_network();
     for( int i = 0 ; i < num_of_layers ; i++) {
         int input_size , output_size ;
         ActivationID actID ;
-        fread(&input_size , sizeof(int) , 1, f);
-        fread(&output_size , sizeof(int), 1, f);
-        fread(&actID , sizeof(int), 1 , f);
+        if(!checked_fread(&input_size , sizeof(int) , 1, f) ||
+           !checked_fread(&output_size , sizeof(int), 1, f) ||
+           !checked_fread(&actID , sizeof(int), 1 , f)) {
+            free_mat(&input_max) ; free_mat(&output_max) ;
+            free_neural_network(nn) ; fclose(f) ; return NULL ;
+        }
         float (*activation)(float);
         float (*activation_derivative)(float);
         get_activation_fxn(actID , &activation , &activation_derivative);
 
         DenseLayer *layer =create_dense_layer(input_size , output_size , activation , activation_derivative);
-        fread(layer->weights.data , sizeof(float) , input_size*output_size ,f );
-        fread(layer->bias.data , sizeof(float) , output_size , f);
+        if(!checked_fread(layer->weights.data , sizeof(float) , input_size*output_size , f) ||
+           !checked_fread(layer->bias.data , sizeof(float) , output_size , f)) {
+            free_dense_layer(layer);
+            free_mat(&input_max) ; free_mat(&output_max) ;
+            free_neural_network(nn) ; fclose(f) ; return NULL ;
+        }
         add_layer(nn , layer);
     }
     fclose(f);
@@ -244,7 +274,7 @@ void save_model(NeuralNetwork *network , char *path){
     }
         int magic = 0xFAFF;
         fwrite(&magic, sizeof(int), 1 , f);
-    
+
 
         fwrite(&network->num_of_layers , sizeof(float) , 1 , f);
         fwrite(&input_max, sizeof(float), 1, f);
@@ -309,4 +339,3 @@ NeuralNetwork* load_model(char* path){
     fclose(f);
     printf("model loaded from %s\n" , path);
     return nn; */
-

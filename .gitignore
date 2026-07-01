@@ -8,6 +8,10 @@ layer_test
 model_test
 matrix_test
 csv_test
+house_price_test
+xor_test
+load_model_test
+forward_kinematics_test
 
 # Build folders
 build/
@@ -27,3 +31,6 @@ cmake-build-*/
 
 #binary
 *.bin
+
+# generated datasets
+data/**/*.csv

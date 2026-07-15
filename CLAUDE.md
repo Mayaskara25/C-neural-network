@@ -22,7 +22,7 @@ There are no automated tests, linter, or CI. The tests/ files are manual integra
 
 This is the most critical thing to get right when modifying this code:
 
-- **Every matrix-returning function allocates**: `create_mat`, `copy_mat`, `add_mat`, `sub_mat`, `mul_mat`, `scalarmul_mat`, `transpose_mat`, `elemul_mat`, `other_op_mat`, `mse_derivative`, `predict` — all return matrices the **caller must `free_mat()`**.
+- **Every matrix-returning function allocates**: `create_mat`, `copy_mat`, `add_mat`, `sub_mat`, `mul_mat`, `scalarmul_mat`, `transpose_mat`, `elemul_mat`, `other_op_mat`, `mse_derivative`, `mae_derivative`, `huber_derivative`, `binary_cross_entropy_derivative`, `predict` — all return matrices the **caller must `free_mat()`**.
 - **Layer owns its internal matrices**: `forward_pass` and `backward_pass` free and re-allocate `layer->input`, `layer->output`, `layer->z`, `layer->delta`, `layer->dW`, `layer->db`, `layer->dx` each call. When reassigning these, free the old value first.
 - **Returned pointers into layers are borrowed**: `forward_network` returns `const*` to the last layer's output. The caller does NOT own it — do not free it. It becomes invalid when the layer is freed or the next forward pass runs.
 - **Ownership transfers**: `add_layer` — network takes ownership of the layer. `create_trained_model` — takes ownership of the network. Do not free these separately after handing them off.

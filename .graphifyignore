@@ -1,0 +1,8 @@
+# Graph scope: library only — include/, src/, scripts/, README.txt, CLAUDE.md
+tests/
+TODO.md
+TODO1.md
+TODO2.md
+compile_flags.txt
+data/
+.zed/
